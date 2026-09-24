@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<title>Returning to TSBooks</title>
+<style>
+  :root { --bg: #f7f7f5; --fg: #1c1f24; --muted: #5f6670; --card: #ffffff; --line: #e3e3de; --accent: #1f4fd8; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #111317; --fg: #e8eaed; --muted: #9aa1ab; --card: #1a1d22; --line: #2b2f36; --accent: #7aa2ff; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px;
+         background: var(--bg); color: var(--fg); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { width: 100%; max-width: 440px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 28px; }
+  h1 { font-size: 17px; margin: 0 0 8px; }
+  p { margin: 0; color: var(--muted); }
+  .mark { width: 28px; height: 28px; border-radius: 7px; background: var(--accent); margin-bottom: 16px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="mark" aria-hidden="true"></div>
+  <h1 id="title">Returning to TSBooks…</h1>
+  <p id="message">Taking you back to TSBooks on your network to finish connecting QuickBooks.</p>
+  <noscript><p>Turn on JavaScript for this page, then try connecting again from TSBooks.</p></noscript>
+</main>
+<script>
+/*
+ * Intuit only returns to https addresses, and TSBooks runs on a home network
+ * over http. This page is the https address registered with Intuit. It forwards
+ * Intuit's answer (code, state, realmId) to the TSBooks server named in `state`
+ * and nothing else. It holds no keys, and the code is useless without the app
+ * secret and the one-time PKCE verifier kept on that server.
+ *
+ * state = "<nonce>.<base64url of the TSBooks origin>", written by TSBooks.
+ * Only private-network origins are accepted, so this page can't be used to
+ * send anyone to an outside site.
+ */
+(function () {
+  var params = new URLSearchParams(window.location.search);
+  var state = params.get("state") || "";
+
+  function show(title, message) {
+    document.getElementById("title").textContent = title;
+    document.getElementById("message").textContent = message;
+  }
+
+  if (!state) {
+    show("Nothing to do here", "This page only finishes QuickBooks connections started from TSBooks. Start again from TSBooks.");
+    return;
+  }
+
+  var origin = allowedOrigin(decodeOrigin(state));
+  if (!origin) {
+    show("Can't return to TSBooks", "This link doesn't point to a TSBooks server on a private network, so it wasn't followed. Start again from TSBooks.");
+    return;
+  }
+
+  window.location.replace(origin + "/api/qbo/callback" + window.location.search);
+
+  function decodeOrigin(value) {
+    var dot = value.indexOf(".");
+    if (dot < 0) return "";
+    var b64 = value.slice(dot + 1).replace(/-/g, "+").replace(/_/g, "/");
+    while (b64.length % 4) b64 += "=";
+    try { return window.atob(b64); } catch (e) { return ""; }
+  }
+
+  function allowedOrigin(raw) {
+    var url;
+    try { url = new URL(raw); } catch (e) { return null; }
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    if (url.username || url.password || url.search || url.hash) return null;
+    if (url.pathname && url.pathname !== "/") return null;
+    return isPrivateHost(url.hostname.toLowerCase()) ? url.origin : null;
+  }
+
+  function isPrivateHost(host) {
+    if (host.charAt(0) === "[") host = host.slice(1, -1);
+    if (host === "localhost" || /\.localhost$/.test(host)) return true;
+    var ip = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+    if (ip) {
+      var a = Number(ip[1]), b = Number(ip[2]);
+      return a === 127 || a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) ||
+        (a === 169 && b === 254) || (a === 100 && b >= 64 && b <= 127);
+    }
+    if (host.indexOf(":") >= 0) return host === "::1" || /^f[cd][0-9a-f]{2}:/.test(host) || /^fe80:/.test(host);
+    if (host.indexOf(".") < 0) return true;
+    return /\.(local|lan|home|internal|home\.arpa|ts\.net)$/.test(host);
+  }
+})();
+</script>
+</body>
+</html>
