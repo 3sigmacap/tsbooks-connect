@@ -18,6 +18,8 @@
   h1 { font-size: 17px; margin: 0 0 8px; }
   p { margin: 0; color: var(--muted); }
   .mark { width: 28px; height: 28px; border-radius: 7px; background: var(--accent); margin-bottom: 16px; }
+  #continue { margin-top: 16px; }
+  #continue a { display: inline-block; background: var(--accent); color: #fff; text-decoration: none; padding: 8px 14px; border-radius: 8px; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -25,6 +27,7 @@
   <div class="mark" aria-hidden="true"></div>
   <h1 id="title">Returning to TSBooks…</h1>
   <p id="message">Taking you back to TSBooks on your network to finish connecting QuickBooks.</p>
+  <p id="continue" hidden><a id="continue-link" href="#">Continue to TSBooks</a></p>
   <noscript><p>Turn on JavaScript for this page, then try connecting again from TSBooks.</p></noscript>
 </main>
 <script>
@@ -59,7 +62,14 @@
     return;
   }
 
-  window.location.replace(origin + "/api/qbo/callback" + window.location.search);
+  var target = origin + "/api/qbo/callback" + window.location.search;
+  window.location.replace(target);
+  // If the browser holds back an automatic jump to a home-network address, offer a link instead.
+  window.setTimeout(function () {
+    document.getElementById("continue-link").href = target;
+    document.getElementById("continue").hidden = false;
+    show("Almost done", "Your browser didn't go back to TSBooks by itself. Click Continue to finish connecting.");
+  }, 2500);
 
   function decodeOrigin(value) {
     var dot = value.indexOf(".");
